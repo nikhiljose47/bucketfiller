@@ -34,8 +34,9 @@ class DrawingState extends State<Drawing> {
           color: Colors.grey[300],
           child: !isFilling
               ? Text(
-                  "  Hi, Just touch anywhere to fill with green color",
+                  "  Hi, After drawing ,just touch anywhere to fill with color",
                   textScaleFactor: 1.2,
+                  maxLines: 2,
                 )
               : Column(
                   children: <Widget>[
@@ -68,7 +69,7 @@ class DrawingState extends State<Drawing> {
                 setState(() {
                   RenderBox renderBox = context.findRenderObject();
                   points.add(DrawingPoints(
-                      points:  details.localPosition,
+                      points: details.localPosition,
                       paint: Paint()
                         ..strokeCap = strokeCap
                         ..isAntiAlias = true
@@ -77,7 +78,7 @@ class DrawingState extends State<Drawing> {
                 });
               },
               onPanEnd: (details) {
-               // points.add(DrawingPoints(points: details.));
+                 points.add(null);
               },
               child: CustomPaint(
                 size: Size.infinite,
@@ -91,11 +92,9 @@ class DrawingState extends State<Drawing> {
       ],
     );
   }
-
-//pixel Offset(451.0, 390.0)
-//emulator Offset(193.8, 137.5)
-  void _ondtap(TapUpDetails tapUpDetail, context, key) {
+  void _ondtap(TapUpDetails tapUpDetail, context, key) async {
     print("bUCKET FILLER START ");
+    _dialogBox();
     setState(() {
       isFilling = true;
       touchPoint = tapUpDetail.localPosition;
@@ -109,12 +108,33 @@ class DrawingState extends State<Drawing> {
       print('stopwatch  ${stopwatch.elapsedMilliseconds}');
       print('data  $data');
       print('kolp  ${data.length}');
-
-      for (var i = 1; i < data.length; i++) {
-        points.add(DrawingPoints(points: data[i]));
-      }
+      setState(() {
+        for (var i = 1; i < data.length; i++) {
+          points.add(DrawingPoints(
+              points: data[i],
+              paint: Paint()
+                ..strokeCap = strokeCap
+                ..isAntiAlias = true
+                ..color = selectedColor.withOpacity(opacity)
+                ..strokeWidth = strokeWidth));
+        }
+      });
+     Navigator.of(context).pop();
     });
   }
+
+  Future<void> _dialogBox() async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Please wait '),
+        content: CircularProgressIndicator(),   
+      );
+    },
+  );
+}
 }
 
 class DrawingPoints {
