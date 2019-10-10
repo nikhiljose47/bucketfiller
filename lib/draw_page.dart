@@ -26,88 +26,140 @@ class DrawingState extends State<Drawing> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          height: 60,
-          width: double.infinity,
-          color: Colors.grey[300],
-          child: !isFilling
-              ? Text(
-                  "  Hi, After drawing ,just touch anywhere to fill with color",
-                  textScaleFactor: 1.2,
-                  maxLines: 2,
-                )
-              : Column(
-                  children: <Widget>[
-                    Text(
-                      " Touched Point - $touchPoint",
-                      textScaleFactor: 1.2,
-                    ),
-                    CircularProgressIndicator()
-                  ],
+    return Container(
+      padding: EdgeInsets.only(top: 20),
+      color: Colors.grey[300],
+      child: Column(
+        children: [
+          Container(
+            height: 150,
+            width: double.infinity,
+            child: !isFilling
+                ? Text(
+                    "  Hi, You can draw anything in the box To fill with color just touch anywhere in the box. It will fill the tightly closed region with black     NOTE: This program is too slow, Make a small area and touch inside it to get the result immediately ",
+                    textScaleFactor: 1.2,
+                    textAlign: TextAlign.center,
+                  )
+                : Column(
+                    children: <Widget>[
+                      Text(
+                        " Touched Point - $touchPoint . Bucket filling... Please Wait ",
+                        textScaleFactor: 1.3,
+                        textAlign: TextAlign.center,
+                      ),
+                      CircularProgressIndicator()
+                    ],
+                  ),
+          ),
+          Center(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(
+                  color: Colors.blueGrey[300],
+                  width: 2.0,
                 ),
-        ),
-        Expanded(
-          child: RepaintBoundary(
-            key: key,
-            child: GestureDetector(
-              onTapUp: (tapDetail) => _ondtap(tapDetail, context, key),
-              onPanUpdate: (details) {
-                setState(() {
-                  RenderBox renderBox = context.findRenderObject();
-                  points.add(DrawingPoints(
-                      points: details.localPosition,
-                      paint: Paint()
-                        ..strokeCap = strokeCap
-                        ..isAntiAlias = true
-                        ..color = selectedColor.withOpacity(opacity)
-                        ..strokeWidth = strokeWidth));
-                });
-              },
-              onPanStart: (details) {
-                setState(() {
-                  RenderBox renderBox = context.findRenderObject();
-                  points.add(DrawingPoints(
-                      points: details.localPosition,
-                      paint: Paint()
-                        ..strokeCap = strokeCap
-                        ..isAntiAlias = true
-                        ..color = selectedColor.withOpacity(opacity)
-                        ..strokeWidth = strokeWidth));
-                });
-              },
-              onPanEnd: (details) {
-                 points.add(null);
-              },
-              child: CustomPaint(
-                size: Size.infinite,
-                painter: DrawingPainter(
-                  pointsList: points,
+              ),
+              width: 150,
+              height: 150,
+              child: RepaintBoundary(
+                key: key,
+                child: GestureDetector(
+                  onTapUp: !isFilling
+                      ? (tapDetail) => _ondtap(tapDetail, context, key)
+                      : null,
+                  onPanUpdate: (details) {
+                    setState(() {
+                      points.add(DrawingPoints(
+                          points: details.localPosition,
+                          paint: Paint()
+                            ..strokeCap = strokeCap
+                            ..isAntiAlias = true
+                            ..color = selectedColor.withOpacity(opacity)
+                            ..strokeWidth = strokeWidth));
+                    });
+                  },
+                  onPanStart: (details) {
+                    setState(() {
+                      points.add(DrawingPoints(
+                          points: details.localPosition,
+                          paint: Paint()
+                            ..strokeCap = strokeCap
+                            ..isAntiAlias = true
+                            ..color = selectedColor.withOpacity(opacity)
+                            ..strokeWidth = strokeWidth));
+                    });
+                  },
+                  onPanEnd: (details) {
+                    points.add(null);
+                  },
+                  child: CustomPaint(
+                    painter: DrawingPainter(
+                      pointsList: points,
+                    ),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+          Row(children: <Widget>[
+            Expanded(
+                flex: 2,
+                child: Container(
+                    height: 40,
+                    child: Center(
+                        child: Text(
+                      "Clear the box - ",
+                      textAlign: TextAlign.center,
+                      textScaleFactor: 1.3,
+                    )))),
+            Expanded(
+              flex: 1,
+              child: Container(
+                alignment: Alignment.centerLeft,
+                height: 50,
+                width: 50,
+             //   color: Colors.white,
+                child: IconButton(
+                  icon: Icon(
+                    Icons.clear,
+                    size: 40,
+                  ),
+                  tooltip: 'Clean the box',
+                  onPressed: () {
+                    setState(() {
+                      points.clear();
+                    });
+                  },
+                ),
+              ),
+            ),
+          ]),
+        ],
+      ),
     );
   }
+
   void _ondtap(TapUpDetails tapUpDetail, context, key) async {
     print("bUCKET FILLER START ");
-    _dialogBox();
     setState(() {
+      _dialogBox();
+
       isFilling = true;
       touchPoint = tapUpDetail.localPosition;
     });
 
     List<Offset> offset = [];
-    points.forEach((f) => offset.add(f.points));
+    points.forEach((f) {
+      if (f != null) {
+        offset.add(f.points);
+      }
+    });
     var stopwatch = new Stopwatch()..start();
     BucketFill().capturePng(key, touchPoint, offset).then((data) {
       stopwatch.stop();
-      print('stopwatch  ${stopwatch.elapsedMilliseconds}');
-      print('data  $data');
-      print('kolp  ${data.length}');
+
+      print('result came  ${data.length}');
       setState(() {
         for (var i = 1; i < data.length; i++) {
           points.add(DrawingPoints(
@@ -118,23 +170,24 @@ class DrawingState extends State<Drawing> {
                 ..color = selectedColor.withOpacity(opacity)
                 ..strokeWidth = strokeWidth));
         }
+        isFilling = false;
       });
-     Navigator.of(context).pop();
+      Navigator.of(context).pop();
     });
   }
 
   Future<void> _dialogBox() async {
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Please wait '),
-        content: CircularProgressIndicator(),   
-      );
-    },
-  );
-}
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Please wait '),
+          content: CircularProgressIndicator(),
+        );
+      },
+    );
+  }
 }
 
 class DrawingPoints {
